@@ -128,3 +128,51 @@ metrics(x_2, truth = dvote, estimate = pred_dvote) %>%
 
 ```
 
+```{r}
+
+# the process below does the same thing we have been doing before, 
+# but it makes things easier to be applied to more complex stuff 
+# (so you don't have to change a bunch of variable names and stuff - 
+# eg you can change from glm to lm by just changing the set_engine() input)
+
+logistic_reg() %>%
+  set_engine("glm") %>%
+  fit(data = clean, formula = dvote ~ gender + party + state + office, family = "binomial") %>%
+  predict(new_data = clean) %>%
+  
+  # predict takes a model (what we have created above), and some data 
+  # (we are using same data that we made the model on), and makes predictions 
+  
+  bind_cols(clean) %>%
+  
+  # needed to include bind_cols to get the truth to compare to our predictions
+  
+  metrics(truth = dvote, estimate = .pred_class) %>%
+  gt() %>% 
+    tab_header("Model 2 (Clean) Evaluation on All Data")
+  
+```
+
+```{r}
+
+# split data to only run this process on 1%
+
+x_split <- initial_split(clean, prop = .01)
+training_data <- training(x_split)
+testing_data <- testing(x_split)
+
+logistic_reg() %>%
+  set_engine("glm") %>%
+  fit(data = training_data, 
+      formula = dvote ~ gender + party + state + office, 
+      family = "binomial") %>%
+  predict(new_data = training_data) %>%
+  bind_cols(training_data) %>%
+  metrics(truth = dvote, estimate = .pred_class) %>%
+  gt() %>% 
+    tab_header("Model Evaluation on All Data")
+
+```
+
+
+
