@@ -166,11 +166,42 @@ logistic_reg() %>%
   fit(data = training_data, 
       formula = dvote ~ gender + party + state + office, 
       family = "binomial") %>%
-  predict(new_data = training_data) %>%
-  bind_cols(training_data) %>%
+  predict(new_data = testing_data) %>%
+  bind_cols(testing_data) %>%
   metrics(truth = dvote, estimate = .pred_class) %>%
   gt() %>% 
     tab_header("Model Evaluation on All Data")
+
+# Cross validation
+
+cv_split <- vfold_cv(training_data, v = 5)
+
+cv_data <- cv_split %>% 
+  mutate(
+    # Extract the train dataframe for each split
+    train = map(splits, ~training(.x)), 
+    # Extract the validate dataframe for each split
+    validate = map(splits, ~testing(.x))
+  )
+
+# Use head() to preview cv_data
+head(cv_data)
+
+# Build a model using the train data for each fold of the cross validation
+cv_models_lm <- cv_data %>% 
+  mutate(model = map(train, ~glm(formula = dvote ~ gender + party + state + office, data = .x)))
+
+
+## Below from datacamp just for evaluating cross-validated models
+
+cv_prep_lm <- cv_models_lm %>% 
+  mutate(
+    # Extract the recorded life expectancy for the records in the validate dataframes
+    validate_actual = map(validate, ~.x$life_expectancy),
+    # Predict life expectancy for each validate set using its corresponding model
+    validate_predicted = map2(.x = model, .y = validate, ~predict(.x, .y))
+  )
+
 
 ```
 
